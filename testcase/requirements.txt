@@ -1,0 +1,3 @@
+pods
+numpy
+matplotlib
