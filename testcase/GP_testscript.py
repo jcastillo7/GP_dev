@@ -6,7 +6,7 @@ def sarcos_demo():
     test=np.genfromtxt("sarcos_inv_test.csv",delimiter-",")
     return ()
 
-def marathon_demo(length_scale=30,noise=0.5):
+def marathon_demo(length_scale=30,noise=0.5,kernel="RBF"):
 
     import pods
     data=pods.datasets.olympic_marathon_men()
@@ -16,19 +16,19 @@ def marathon_demo(length_scale=30,noise=0.5):
     #makeup test set
     x_test=np.linspace(x_train.min(),x_train.max(),100) #size n*
     x_test.resize((100,1))
-    fstar,cov,plogy=GPR_simple(x_train,y_train,x_test,length_scale,noise)
+    fstar,cov,plogy=GPR_simple(x_train,y_train,x_test,length_scale,noise,kernel=kernel)
     y_train=y_train+y.mean()
     fstar=fstar+y.mean()
     fig=plot_simple_demo(x_train,y_train,x_test,fstar,cov)
     return (x_test,fstar,cov,fig)
 
-def sin_demo(length_scale=1,noise=0):
+def sin_demo(length_scale=1,noise=0,kernel="RBF"):
     sigma2e=0.001
     x_train=np.random.normal(0,2,(10,1))
     y_train=np.sin(2*np.pi*x_train)
     x_test=np.linspace(-5,5,100)
     x_test.resize((100,1))
-    fstar,cov,plogy=GPR_simple(x_train,y_train,x_test,length_scale,noise=sigma2e)
+    fstar,cov,plogy=GPR_simple(x_train,y_train,x_test,length_scale,noise=sigma2e,kernel=kernel)
     fig=plot_simple_demo(x_train,y_train,x_test,fstar,cov)
     return (x_test,fstar,cov,fig)
 
@@ -55,8 +55,18 @@ def plot_simple_demo(x_train,y_train,x_test,fstar,cov):
     return (fig)
 
 
-def GPR_simple(x_train,y_train,x_test,length_scale=None,noise=None):
-    kern=RBF
+def GPR_simple(x_train,y_train,x_test,length_scale=None,noise=None,kernel="RBF"):
+    if kernel=="RBF":
+        kern=RBF
+    if kernel=="periodic":
+        kern=periodic
+    elif kernel=="linear":
+        kern=linear
+    elif kernel=="polynomial":
+        kern=polynomial
+    else:
+        kern=RBF
+
     #perform convolution function, i.e. find k,k*,K*
     K=kern(x_train,x_train,length_scale,sigma=1) #size n by n
     if noise is None:
@@ -110,7 +120,7 @@ def RBF(x_data,x_data_star,length_scale=None,sigma=1):
             K[i,j]=np.square(sigma)*np.exp(-(np.square(r))/(2*np.square(length_scale)))
     return(K)
 
-def periodic(x_data,x_data_star,length_scale=None,sigma=1):
+def periodic(x_data,x_data_star,length_scale=None,sigma=0.001):
     """
     sin kernel
     to be optimized... lolz
@@ -160,7 +170,7 @@ def sink(x_data,x_data_star,length_scale=None,sigma=1):
 
 
 
-def linear(x_data,x_data_star,sigmab=1,sigmav=1):
+def linear(x_data,x_data_star,length_scale=1,sigma=1):
     """
     sin kernel
     to be optimized... lolz
@@ -179,8 +189,31 @@ def linear(x_data,x_data_star,sigmab=1,sigmav=1):
     c=0
     for i in range(I):
         for j in range(J):
-            r=(x_data[i,:]-c)*(x_data_star[j,:]-c)
-            K[i,j]=np.square(sigmab)+np.square(sigmav)*r
+            K[i,j]=np.inner(x_data[i,:],x_data_star[j,:])*np.square(sigma)
+    return(K)
+
+def polynomial(x_data,x_data_star,length_scale=1,sigma=1):
+    """
+    sin kernel
+    to be optimized... lolz
+    can take in multidimensional data set
+    each row is a data point, each column is a dimension
+    """
+    I=x_data.shape[0]
+    if length_scale is None:
+        length_scale=1
+
+    J=x_data_star.shape[0]
+    K=np.zeros((I,J))
+    """
+    the below can be faster by using pop, but we will do that later
+    """
+    p=length_scale
+    for i in range(I):
+        for j in range(J):
+            K[i,j]=np.power((np.inner(x_data[i,:],x_data_star[j,:])+sigma),p)
+            # for multidimensional
+            # K[i,j]=(np.dot(x_data[i],x_data_star[j])+sigma)^p
     return(K)
 
 
