@@ -120,7 +120,7 @@ def RBF(x_data,x_data_star,length_scale=None,sigma=1):
             K[i,j]=np.square(sigma)*np.exp(-(np.square(r))/(2*np.square(length_scale)))
     return(K)
 
-def periodic(x_data,x_data_star,length_scale=None,sigma=0.001):
+def periodic(x_data,x_data_star,length_scale=None,sigma=1):
     """
     sin kernel
     to be optimized... lolz
